@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expiration Date Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .current-date {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #4a4a4a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Expiration Date Calculator</h1>
+        <div id="currentDate" class="current-date"></div>
+        <table id="expirationTable">
+            <tr>
+                <th>Category</th>
+                <th>Expiration Date</th>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        function formatDate(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const year = date.getFullYear();
+            return `${month}/${day}/${year}`;
+        }
+
+        function calculateExpirationDates() {
+            const categories = [
+                { days: 7, label: "7 days" },
+                { days: 10, label: "10 days" },
+                { days: 14, label: "14 days" },
+                { days: 21, label: "21 days" },
+                { days: 30, label: "30 days" }
+            ];
+
+            const currentDate = new Date();
+            document.getElementById("currentDate").textContent = `Today's Date: ${formatDate(currentDate)}`;
+
+            const table = document.getElementById("expirationTable");
+
+            categories.forEach(category => {
+                const row = table.insertRow(-1);
+                const categoryCell = row.insertCell(0);
+                const dateCell = row.insertCell(1);
+
+                const expirationDate = new Date(currentDate.getTime() + (category.days - 1) * 24 * 60 * 60 * 1000);
+
+                categoryCell.textContent = category.label;
+                dateCell.textContent = formatDate(expirationDate);
+            });
+        }
+
+        calculateExpirationDates();
+    </script>
+</body>
+</html>
