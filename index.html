@@ -42,6 +42,21 @@
         th {
             background-color: #f2f2f2;
         }
+        .toggle-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .toggle-btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .toggle-btn:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -54,14 +69,27 @@
                 <th>Expiration Date</th>
             </tr>
         </table>
+        <div class="toggle-container">
+            <button id="toggleBtn" class="toggle-btn" onclick="toggleDateFormat()">Julian Dates</button>
+        </div>
     </div>
 
     <script>
+        let isJulian = false;
+
         function formatDate(date) {
             const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
             return `${month}/${day}/${year}`;
+        }
+
+        function getJulianDate(date) {
+            const start = new Date(date.getFullYear(), 0, 0);
+            const diff = date - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            return String(date.getFullYear()).slice(-1) + String(dayOfYear).padStart(3, '0');
         }
 
         function calculateExpirationDates() {
@@ -74,20 +102,36 @@
             ];
 
             const currentDate = new Date();
-            document.getElementById("currentDate").textContent = `Today's Date: ${formatDate(currentDate)}`;
+            updateCurrentDateDisplay(currentDate);
 
             const table = document.getElementById("expirationTable");
+            // Clear existing rows except the header
+            while (table.rows.length > 1) {
+                table.deleteRow(1);
+            }
 
             categories.forEach(category => {
                 const row = table.insertRow(-1);
                 const categoryCell = row.insertCell(0);
                 const dateCell = row.insertCell(1);
 
-                const expirationDate = new Date(currentDate.getTime() + (category.days - 1) * 24 * 60 * 60 * 1000);
-
                 categoryCell.textContent = category.label;
-                dateCell.textContent = formatDate(expirationDate);
+                const expirationDate = new Date(currentDate.getTime() + (category.days - 1) * 24 * 60 * 60 * 1000);
+                dateCell.textContent = isJulian ? getJulianDate(expirationDate) : formatDate(expirationDate);
             });
+        }
+
+        function updateCurrentDateDisplay(date) {
+            const currentDateElement = document.getElementById("currentDate");
+            const formattedDate = isJulian ? getJulianDate(date) : formatDate(date);
+            currentDateElement.textContent = `Today's Date: ${formattedDate}`;
+        }
+
+        function toggleDateFormat() {
+            isJulian = !isJulian;
+            calculateExpirationDates();
+            const toggleBtn = document.getElementById("toggleBtn");
+            toggleBtn.textContent = isJulian ? "Regular Dates" : "Julian Dates";
         }
 
         calculateExpirationDates();
