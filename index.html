@@ -57,18 +57,42 @@
         .toggle-btn:hover {
             background-color: #45a049;
         }
+        .hidden {
+            display: none;
+        }
+        th.sortable {
+            cursor: pointer;
+        }
+        th.sortable::after {
+            content: " ↕";
+            font-size: 0.8em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Expiration Date Calculator</h1>
         <div id="currentDate" class="current-date"></div>
-        <table id="expirationTable">
-            <tr>
-                <th>Category</th>
-                <th>Expiration Date</th>
-            </tr>
-        </table>
+        <div class="toggle-container">
+            <button id="toggleViewBtn" class="toggle-btn" onclick="toggleView()">Show Inventory Table</button>
+        </div>
+        <div id="defaultView">
+            <table id="expirationTable">
+                <tr>
+                    <th>Category</th>
+                    <th>Expiration Date</th>
+                </tr>
+            </table>
+        </div>
+        <div id="referenceView" class="hidden">
+            <table id="referenceTable">
+                <tr>
+                    <th class="sortable" onclick="sortTable(0)">Food Item</th>
+                    <th class="sortable" onclick="sortTable(1)">Expiration Time (Days)</th>
+                </tr>
+                <!-- Reference table rows will be added here dynamically -->
+            </table>
+        </div>
         <div class="toggle-container">
             <button id="toggleBtn" class="toggle-btn" onclick="toggleDateFormat()">Julian Dates</button>
         </div>
@@ -76,6 +100,24 @@
 
     <script>
         let isJulian = false;
+        let isReferenceView = false;
+
+        const referenceData = [
+            { item: "Jimmy Dean Breakfast Sandwich", days: 7 },
+            { item: "PB&J Sandwich", days: 7 },
+            { item: "Tyson Chicken Sandwich", days: 7 },
+            { item: "Hot Dog Buns", days: 7 },
+            { item: "Don Miguel Burrito", days: 10 },
+            { item: "Pierre Grilled Cheese Melts", days: 14 },
+            { item: "Big AZ Burgers", days: 14 },
+            { item: "Big AZ Sandwich", days: 14 },
+            { item: "Pierre Philly Cheese Melts", days: 14 },
+            { item: "Tyson Waffle Chicken Sandwich", days: 14 },
+            { item: "Petite Cheesecakes", days: 21 },
+            { item: "Prairie City Cookies", days: 21 },
+            { item: "Bomb Burrito", days: 21 },
+            { item: "Nemo Cakes", days: 30 }
+        ];
 
         function formatDate(date) {
             const day = String(date.getDate()).padStart(2, '0');
@@ -132,6 +174,55 @@
             calculateExpirationDates();
             const toggleBtn = document.getElementById("toggleBtn");
             toggleBtn.textContent = isJulian ? "Regular Dates" : "Julian Dates";
+        }
+
+        function toggleView() {
+            isReferenceView = !isReferenceView;
+            document.getElementById("defaultView").classList.toggle("hidden");
+            document.getElementById("referenceView").classList.toggle("hidden");
+            const toggleViewBtn = document.getElementById("toggleViewBtn");
+            toggleViewBtn.textContent = isReferenceView ? "Show Date Table" : "Show Inventory Table";
+
+            if (isReferenceView) {
+                populateReferenceTable();
+            }
+        }
+
+        function populateReferenceTable() {
+            const table = document.getElementById("referenceTable");
+            // Clear existing rows except the header
+            while (table.rows.length > 1) {
+                table.deleteRow(1);
+            }
+
+            referenceData.forEach(item => {
+                const row = table.insertRow(-1);
+                const itemCell = row.insertCell(0);
+                const daysCell = row.insertCell(1);
+
+                itemCell.textContent = item.item;
+                daysCell.textContent = item.days;
+            });
+        }
+
+        function sortTable(column) {
+            const table = document.getElementById("referenceTable");
+            const rows = Array.from(table.rows).slice(1); // Exclude header row
+            const isAscending = table.rows[0].cells[column].classList.toggle("asc");
+
+            rows.sort((a, b) => {
+                const aValue = a.cells[column].textContent;
+                const bValue = b.cells[column].textContent;
+                
+                if (column === 1) { // Sort by days (numeric)
+                    return isAscending ? aValue - bValue : bValue - aValue;
+                } else { // Sort by food item (alphabetical)
+                    return isAscending ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+                }
+            });
+
+            // Reinsert sorted rows
+            rows.forEach(row => table.appendChild(row));
         }
 
         calculateExpirationDates();
