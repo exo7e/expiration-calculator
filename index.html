@@ -23,6 +23,13 @@
             color: #333;
             text-align: center;
         }
+        h2 {
+            color: #555;
+            font-size: 1.2em;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 20px;
+        }
         .current-date {
             text-align: center;
             font-size: 1.2em;
@@ -32,7 +39,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 0;
         }
         th, td {
             padding: 10px;
@@ -42,21 +49,88 @@
         th {
             background-color: #f2f2f2;
         }
-        .toggle-container {
-            text-align: center;
-            margin-top: 20px;
+        
+        /* Tab Navigation Styles */
+        .tab-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 5px; /* Reduced gap slightly */
         }
-        .toggle-btn {
-            padding: 10px 20px;
+        .tab-btn {
+            flex: 1;
+            padding: 12px 5px; /* Reduced side padding for narrower screens */
+            background-color: #e0e0e0;
+            color: #555;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .tab-btn:hover {
+            background-color: #d0d0d0;
+        }
+        .tab-btn.active {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Calculator Styles */
+        .calculator-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        .calc-btn {
+            width: 100%;
+            padding: 10px;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 1em;
+            margin-top: 5px;
         }
-        .toggle-btn:hover {
+        .calc-btn:hover {
             background-color: #45a049;
         }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border: 1px solid #4CAF50;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            color: #2e7d32;
+            font-size: 1.1em;
+        }
+        .result-error {
+            background-color: #ffebee;
+            border-color: #ef5350;
+            color: #c62828;
+        }
+
         .hidden {
             display: none;
         }
@@ -73,34 +147,62 @@
     <div class="container">
         <h1>Expiration Date Calculator</h1>
         <div id="currentDate" class="current-date"></div>
-        <div class="toggle-container">
-            <button id="toggleViewBtn" class="toggle-btn" onclick="toggleView()">Show Inventory Table</button>
+
+        <!-- Updated Tab Navigation -->
+        <div class="tab-nav">
+            <button id="tabRegular" class="tab-btn active" onclick="setView('regular')">Regular</button>
+            <button id="tabJulian" class="tab-btn" onclick="setView('julian')">Julian</button>
+            <button id="tabInventory" class="tab-btn" onclick="setView('inventory')">Items</button>
         </div>
-        <div id="defaultView">
-            <table id="expirationTable">
+
+        <!-- View 1: Regular Dates -->
+        <div id="regularView">
+            <table id="expirationTableRegular">
                 <tr>
                     <th>Category</th>
                     <th>Expiration Date</th>
                 </tr>
             </table>
         </div>
-        <div id="referenceView" class="hidden">
+
+        <!-- View 2: Julian Dates + Calculator -->
+        <div id="julianView" class="hidden">
+            <table id="expirationTableJulian">
+                <tr>
+                    <th>Category</th>
+                    <th>Expiration Date</th>
+                </tr>
+            </table>
+            
+            <!-- Calculator integrated here -->
+            <div class="calculator-section">
+                <h2>Julian Date Calculator</h2>
+                <div class="input-group">
+                    <label for="julianInput">Manufacture Date (Julian):</label>
+                    <input type="text" id="julianInput" placeholder="e.g., 4125 (Year 4, Day 125)">
+                </div>
+                <div class="input-group">
+                    <label for="shelfLifeInput">Shelf Life (Days):</label>
+                    <input type="number" id="shelfLifeInput" placeholder="e.g., 105">
+                </div>
+                <button class="calc-btn" onclick="calculateCustomExpiration()">Calculate Expiration</button>
+                <div id="calcResult" class="result-box hidden"></div>
+            </div>
+        </div>
+
+        <!-- View 3: Inventory -->
+        <div id="inventoryView" class="hidden">
             <table id="referenceTable">
                 <tr>
                     <th class="sortable" onclick="sortTable(0)">Food Item</th>
-                    <th class="sortable" onclick="sortTable(1)">Expiration Time (Days)</th>
+                    <th class="sortable" onclick="sortTable(1)">Days</th>
                 </tr>
-                <!-- Reference table rows will be added here dynamically -->
             </table>
-        </div>
-        <div class="toggle-container">
-            <button id="toggleBtn" class="toggle-btn" onclick="toggleDateFormat()">Julian Dates</button>
         </div>
     </div>
 
     <script>
-        let isJulian = false;
-        let isReferenceView = false;
+        let currentView = 'regular';
 
         const referenceData = [
             { item: "Jimmy Dean Breakfast Sandwich", days: 7 },
@@ -135,7 +237,46 @@
             return String(date.getFullYear()).slice(-1) + String(dayOfYear).padStart(3, '0');
         }
 
-        function calculateExpirationDates() {
+        function parseJulianDate(julianString) {
+            if (!julianString || julianString.length < 4) return null;
+            const yearDigit = parseInt(julianString.substring(0, 1));
+            const dayOfYear = parseInt(julianString.substring(1));
+            if (isNaN(yearDigit) || isNaN(dayOfYear)) return null;
+            
+            const currentYear = new Date().getFullYear();
+            const currentDecade = Math.floor(currentYear / 10) * 10;
+            let year = currentDecade + yearDigit;
+            
+            return new Date(year, 0, dayOfYear);
+        }
+
+        function setView(viewType) {
+            currentView = viewType;
+            
+            document.getElementById("regularView").classList.add("hidden");
+            document.getElementById("julianView").classList.add("hidden");
+            document.getElementById("inventoryView").classList.add("hidden");
+
+            document.getElementById("tabRegular").classList.remove("active");
+            document.getElementById("tabJulian").classList.remove("active");
+            document.getElementById("tabInventory").classList.remove("active");
+
+            if (viewType === 'regular') {
+                document.getElementById("regularView").classList.remove("hidden");
+                document.getElementById("tabRegular").classList.add("active");
+                populateExpirationTable('regular');
+            } else if (viewType === 'julian') {
+                document.getElementById("julianView").classList.remove("hidden");
+                document.getElementById("tabJulian").classList.add("active");
+                populateExpirationTable('julian');
+            } else if (viewType === 'inventory') {
+                document.getElementById("inventoryView").classList.remove("hidden");
+                document.getElementById("tabInventory").classList.add("active");
+                populateReferenceTable();
+            }
+        }
+
+        function populateExpirationTable(type) {
             const categories = [
                 { days: 7, label: "7 days" },
                 { days: 10, label: "10 days" },
@@ -145,10 +286,11 @@
             ];
 
             const currentDate = new Date();
-            updateCurrentDateDisplay(currentDate);
+            updateCurrentDateDisplay(currentDate, type);
 
-            const table = document.getElementById("expirationTable");
-            // Clear existing rows except the header
+            const tableId = type === 'julian' ? "expirationTableJulian" : "expirationTableRegular";
+            const table = document.getElementById(tableId);
+
             while (table.rows.length > 1) {
                 table.deleteRow(1);
             }
@@ -159,39 +301,20 @@
                 const dateCell = row.insertCell(1);
 
                 categoryCell.textContent = category.label;
-                const expirationDate = new Date(currentDate.getTime() + (category.days) * 24 * 60 * 60 * 1000);
-                dateCell.textContent = isJulian ? getJulianDate(expirationDate) : formatDate(expirationDate);
+                const expirationDate = new Date(currentDate.getTime() + (category.days * 24 * 60 * 60 * 1000));
+                
+                dateCell.textContent = type === 'julian' ? getJulianDate(expirationDate) : formatDate(expirationDate);
             });
         }
 
-        function updateCurrentDateDisplay(date) {
+        function updateCurrentDateDisplay(date, type) {
             const currentDateElement = document.getElementById("currentDate");
-            const formattedDate = isJulian ? getJulianDate(date) : formatDate(date);
+            const formattedDate = type === 'julian' ? getJulianDate(date) : formatDate(date);
             currentDateElement.textContent = `Today's Date: ${formattedDate}`;
-        }
-
-        function toggleDateFormat() {
-            isJulian = !isJulian;
-            calculateExpirationDates();
-            const toggleBtn = document.getElementById("toggleBtn");
-            toggleBtn.textContent = isJulian ? "Regular Dates" : "Julian Dates";
-        }
-
-        function toggleView() {
-            isReferenceView = !isReferenceView;
-            document.getElementById("defaultView").classList.toggle("hidden");
-            document.getElementById("referenceView").classList.toggle("hidden");
-            const toggleViewBtn = document.getElementById("toggleViewBtn");
-            toggleViewBtn.textContent = isReferenceView ? "Show Date Table" : "Show Inventory Table";
-
-            if (isReferenceView) {
-                populateReferenceTable();
-            }
         }
 
         function populateReferenceTable() {
             const table = document.getElementById("referenceTable");
-            // Clear existing rows except the header
             while (table.rows.length > 1) {
                 table.deleteRow(1);
             }
@@ -200,33 +323,62 @@
                 const row = table.insertRow(-1);
                 const itemCell = row.insertCell(0);
                 const daysCell = row.insertCell(1);
-
                 itemCell.textContent = item.item;
                 daysCell.textContent = item.days;
             });
         }
 
+        function calculateCustomExpiration() {
+            const julianInput = document.getElementById('julianInput').value.trim();
+            const shelfLifeInput = document.getElementById('shelfLifeInput').value;
+            const resultDiv = document.getElementById('calcResult');
+
+            if (!julianInput || !shelfLifeInput) {
+                resultDiv.innerHTML = "Please enter both a Julian date and shelf life.";
+                resultDiv.classList.add('result-error');
+                resultDiv.classList.remove('hidden');
+                return;
+            }
+
+            const startDate = parseJulianDate(julianInput);
+            const shelfDays = parseInt(shelfLifeInput);
+
+            if (!startDate) {
+                resultDiv.innerHTML = "Invalid Julian Format. Use YDDD (e.g., 4125).";
+                resultDiv.classList.add('result-error');
+                resultDiv.classList.remove('hidden');
+                return;
+            }
+
+            const expirationDate = new Date(startDate.getTime() + (shelfDays * 24 * 60 * 60 * 1000));
+
+            resultDiv.innerHTML = `
+                <strong>Result:</strong><br>
+                Manufactured: ${formatDate(startDate)}<br>
+                Expires: ${formatDate(expirationDate)}
+            `;
+            resultDiv.classList.remove('result-error', 'hidden');
+        }
+
         function sortTable(column) {
             const table = document.getElementById("referenceTable");
-            const rows = Array.from(table.rows).slice(1); // Exclude header row
+            const rows = Array.from(table.rows).slice(1);
             const isAscending = table.rows[0].cells[column].classList.toggle("asc");
 
             rows.sort((a, b) => {
                 const aValue = a.cells[column].textContent;
                 const bValue = b.cells[column].textContent;
-                
-                if (column === 1) { // Sort by days (numeric)
+                if (column === 1) {
                     return isAscending ? aValue - bValue : bValue - aValue;
-                } else { // Sort by food item (alphabetical)
+                } else {
                     return isAscending ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
                 }
             });
 
-            // Reinsert sorted rows
             rows.forEach(row => table.appendChild(row));
         }
 
-        calculateExpirationDates();
+        setView('regular');
     </script>
 </body>
 </html>
